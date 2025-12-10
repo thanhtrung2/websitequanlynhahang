@@ -1,0 +1,27 @@
+# Environment files
+env/
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.bak
+*.tmp
+*~
+
+# Logs
+*.log
+error_log
+
+# Cache
+cache/
+tmp/
