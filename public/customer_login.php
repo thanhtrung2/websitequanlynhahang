@@ -119,9 +119,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .links a:hover {
             text-decoration: underline;
         }
+        body { padding-top: 80px; }
     </style>
 </head>
 <body>
+    <?php include 'includes/header.php'; ?>
+    
     <div class="login-container">
         <h2><i class="fas fa-user"></i> Đăng nhập khách hàng</h2>
         

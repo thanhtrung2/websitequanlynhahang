@@ -77,33 +77,7 @@ try {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #F5F5DC 0%, #EDE8D0 100%);
             min-height: 100vh;
-        }
-        .header {
-            background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
-            padding: 15px 0;
-        }
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #F5F5DC;
-        }
-        .back-btn {
-            padding: 8px 20px;
-            background: #F5F5DC;
-            color: #001f3f;
-            text-decoration: none;
-            border-radius: 5px;
+            padding-top: 70px;
         }
         .container {
             max-width: 1000px;
@@ -240,17 +214,7 @@ try {
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <div class="logo">
-                <i class="fas fa-chair"></i>
-                <span>Đặt bàn</span>
-            </div>
-            <a href="customer_dashboard.php" class="back-btn">
-                <i class="fas fa-arrow-left"></i> Quay lại
-            </a>
-        </div>
-    </div>
+    <?php include 'includes/header.php'; ?>
 
     <div class="container">
         <div class="page-header">

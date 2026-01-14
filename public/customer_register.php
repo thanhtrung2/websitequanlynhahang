@@ -9,9 +9,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $HoTen = trim($_POST['HoTen']);
     $SoDienThoai = trim($_POST['SoDienThoai']);
     $Email = trim($_POST['Email'] ?? '');
+    $agreeTerms = isset($_POST['agree_terms']);
     
     if (empty($HoTen) || empty($SoDienThoai)) {
         $error = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+    } elseif (!$agreeTerms) {
+        $error = 'Bạn cần đồng ý với điều khoản sử dụng để đăng ký!';
     } else {
         try {
             // Kiểm tra số điện thoại đã tồn tại
@@ -123,9 +126,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .links a:hover {
             text-decoration: underline;
         }
+        body { padding-top: 80px; }
+        
+        /* Checkbox điều khoản */
+        .terms-group {
+            margin-bottom: 20px;
+        }
+        .terms-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            cursor: pointer;
+        }
+        .terms-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-top: 2px;
+            cursor: pointer;
+            accent-color: #001f3f;
+        }
+        .terms-checkbox label {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+        .terms-checkbox a {
+            color: #001f3f;
+            font-weight: 600;
+        }
+        .terms-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .terms-modal.active { display: flex; }
+        .terms-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .terms-header {
+            padding: 20px;
+            border-bottom: 2px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+        }
+        .terms-header h3 { color: #001f3f; }
+        .terms-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+        .terms-body {
+            padding: 25px;
+            line-height: 1.8;
+            color: #333;
+        }
+        .terms-body h4 {
+            color: #001f3f;
+            margin: 20px 0 10px;
+        }
+        .terms-body h4:first-child { margin-top: 0; }
+        .terms-body ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        .terms-body li { margin-bottom: 8px; }
     </style>
 </head>
 <body>
+    <?php include 'includes/header.php'; ?>
+    
     <div class="register-container">
         <h2><i class="fas fa-user-plus"></i> Đăng ký khách hàng thân thiết</h2>
         
@@ -157,6 +245,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="email" name="Email" placeholder="example@email.com">
             </div>
             
+            <div class="terms-group">
+                <div class="terms-checkbox">
+                    <input type="checkbox" name="agree_terms" id="agree_terms" required>
+                    <label for="agree_terms">
+                        Tôi đã đọc và đồng ý với <a href="#" onclick="openTermsModal(); return false;">Điều khoản sử dụng</a> và <a href="#" onclick="openPrivacyModal(); return false;">Chính sách bảo mật</a> của Nhà hàng 3CE
+                    </label>
+                </div>
+            </div>
+            
             <button type="submit" class="btn">
                 <i class="fas fa-user-plus"></i> Đăng ký
             </button>
@@ -167,5 +264,120 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a href="index.php">Về trang chủ</a>
         </div>
     </div>
+    
+    <!-- Modal Điều khoản sử dụng -->
+    <div class="terms-modal" id="termsModal">
+        <div class="terms-content">
+            <div class="terms-header">
+                <h3><i class="fas fa-file-contract"></i> Điều khoản sử dụng</h3>
+                <button class="terms-close" onclick="closeTermsModal()">&times;</button>
+            </div>
+            <div class="terms-body">
+                <h4>1. Giới thiệu</h4>
+                <p>Chào mừng bạn đến với Nhà hàng 3CE. Khi đăng ký tài khoản và sử dụng dịch vụ của chúng tôi, bạn đồng ý tuân thủ các điều khoản sau đây.</p>
+                
+                <h4>2. Tài khoản người dùng</h4>
+                <ul>
+                    <li>Bạn phải cung cấp thông tin chính xác và đầy đủ khi đăng ký.</li>
+                    <li>Bạn chịu trách nhiệm bảo mật thông tin tài khoản của mình.</li>
+                    <li>Mỗi số điện thoại chỉ được đăng ký một tài khoản.</li>
+                </ul>
+                
+                <h4>3. Đặt bàn và đặt món</h4>
+                <ul>
+                    <li>Thông tin đặt bàn cần được xác nhận bởi nhà hàng.</li>
+                    <li>Vui lòng đến đúng giờ đã đặt hoặc thông báo trước nếu có thay đổi.</li>
+                    <li>Nhà hàng có quyền hủy đặt bàn nếu khách đến trễ quá 30 phút mà không thông báo.</li>
+                </ul>
+                
+                <h4>4. Thanh toán</h4>
+                <ul>
+                    <li>Giá món ăn có thể thay đổi mà không cần thông báo trước.</li>
+                    <li>Điểm tích lũy chỉ có giá trị khi thanh toán tại nhà hàng.</li>
+                    <li>Điểm tích lũy không được quy đổi thành tiền mặt.</li>
+                </ul>
+                
+                <h4>5. Quyền và nghĩa vụ</h4>
+                <ul>
+                    <li>Nhà hàng có quyền từ chối phục vụ trong trường hợp cần thiết.</li>
+                    <li>Khách hàng có trách nhiệm giữ gìn vệ sinh và trật tự tại nhà hàng.</li>
+                </ul>
+                
+                <h4>6. Thay đổi điều khoản</h4>
+                <p>Nhà hàng 3CE có quyền thay đổi điều khoản sử dụng bất cứ lúc nào. Các thay đổi sẽ có hiệu lực ngay khi được đăng tải.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Chính sách bảo mật -->
+    <div class="terms-modal" id="privacyModal">
+        <div class="terms-content">
+            <div class="terms-header">
+                <h3><i class="fas fa-shield-alt"></i> Chính sách bảo mật</h3>
+                <button class="terms-close" onclick="closePrivacyModal()">&times;</button>
+            </div>
+            <div class="terms-body">
+                <h4>1. Thu thập thông tin</h4>
+                <p>Chúng tôi thu thập các thông tin sau khi bạn đăng ký:</p>
+                <ul>
+                    <li>Họ tên</li>
+                    <li>Số điện thoại</li>
+                    <li>Địa chỉ email (nếu cung cấp)</li>
+                </ul>
+                
+                <h4>2. Mục đích sử dụng</h4>
+                <p>Thông tin của bạn được sử dụng để:</p>
+                <ul>
+                    <li>Xác nhận đặt bàn và đơn hàng</li>
+                    <li>Liên hệ khi cần thiết</li>
+                    <li>Gửi thông báo về ưu đãi và khuyến mãi (nếu bạn đồng ý)</li>
+                    <li>Cải thiện chất lượng dịch vụ</li>
+                </ul>
+                
+                <h4>3. Bảo mật thông tin</h4>
+                <ul>
+                    <li>Chúng tôi cam kết bảo mật thông tin cá nhân của bạn.</li>
+                    <li>Thông tin không được chia sẻ cho bên thứ ba mà không có sự đồng ý của bạn.</li>
+                    <li>Dữ liệu được lưu trữ an toàn trên hệ thống bảo mật.</li>
+                </ul>
+                
+                <h4>4. Quyền của bạn</h4>
+                <ul>
+                    <li>Bạn có quyền yêu cầu xem, chỉnh sửa hoặc xóa thông tin cá nhân.</li>
+                    <li>Bạn có thể hủy đăng ký nhận thông báo bất cứ lúc nào.</li>
+                </ul>
+                
+                <h4>5. Liên hệ</h4>
+                <p>Nếu có thắc mắc về chính sách bảo mật, vui lòng liên hệ:</p>
+                <ul>
+                    <li>Email: support@nhahang3ce.com</li>
+                    <li>Hotline: 0123 456 789</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function openTermsModal() {
+            document.getElementById('termsModal').classList.add('active');
+        }
+        function closeTermsModal() {
+            document.getElementById('termsModal').classList.remove('active');
+        }
+        function openPrivacyModal() {
+            document.getElementById('privacyModal').classList.add('active');
+        }
+        function closePrivacyModal() {
+            document.getElementById('privacyModal').classList.remove('active');
+        }
+        
+        // Đóng modal khi click bên ngoài
+        document.getElementById('termsModal').addEventListener('click', function(e) {
+            if (e.target === this) closeTermsModal();
+        });
+        document.getElementById('privacyModal').addEventListener('click', function(e) {
+            if (e.target === this) closePrivacyModal();
+        });
+    </script>
 </body>
 </html>

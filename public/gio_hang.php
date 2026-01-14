@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/helpers.php';
 
 // Kiểm tra đăng nhập khách hàng
 if (!isset($_SESSION['customer_id'])) {
@@ -44,6 +45,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_cart'])) {
 $message = '';
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
+    // Cập nhật số lượng trước khi xác nhận
+    if (isset($_POST['quantity'])) {
+        foreach ($_POST['quantity'] as $index => $qty) {
+            $qty = intval($qty);
+            if ($qty > 0 && $qty <= 99 && isset($_SESSION['cart'][$index])) {
+                $_SESSION['cart'][$index]['SoLuong'] = $qty;
+            }
+        }
+    }
+    
     if (empty($_SESSION['cart'])) {
         $error = 'Giỏ hàng trống!';
     } else {
@@ -70,11 +81,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
             
             $conn->commit();
             
+            // Lưu thông tin đơn hàng vào session để hiển thị thông báo
+            $_SESSION['order_success'] = 'Đặt món thành công! Mã hóa đơn: #' . str_pad($maHoaDon, 6, '0', STR_PAD_LEFT);
+            $_SESSION['last_order_id'] = $maHoaDon;
+            
             // Xóa giỏ hàng
             $_SESSION['cart'] = [];
-            $_SESSION['order_success'] = 'Đặt món thành công! Mã hóa đơn của bạn là: #' . $maHoaDon;
             
-            header("Location: gio_hang.php");
+            // Chuyển sang trang thanh toán với hóa đơn vừa tạo
+            header("Location: thanh_toan.php?view=" . $maHoaDon . "&new=1");
             exit();
             
         } catch(PDOException $e) {
@@ -110,34 +125,7 @@ foreach ($cart as $item) {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #F5F5DC 0%, #EDE8D0 100%);
             min-height: 100vh;
-        }
-        .header {
-            background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
-            padding: 15px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #F5F5DC;
-        }
-        .back-btn {
-            padding: 8px 20px;
-            background: #F5F5DC;
-            color: #001f3f;
-            text-decoration: none;
-            border-radius: 5px;
+            padding-top: 70px;
         }
         .container {
             max-width: 1000px;
@@ -314,17 +302,7 @@ foreach ($cart as $item) {
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <div class="logo">
-                <i class="fas fa-shopping-cart"></i>
-                <span>Giỏ hàng</span>
-            </div>
-            <a href="customer_dashboard.php" class="back-btn">
-                <i class="fas fa-arrow-left"></i> Quay lại
-            </a>
-        </div>
-    </div>
+    <?php include 'includes/header.php'; ?>
 
     <div class="container">
         <div class="page-header">
@@ -360,7 +338,8 @@ foreach ($cart as $item) {
                 <?php foreach ($cart as $index => $item): ?>
                 <div class="cart-item">
                     <?php if (!empty($item['HinhAnh'])): ?>
-                        <img src="<?php echo htmlspecialchars($item['HinhAnh']); ?>" class="cart-item-image" onerror="this.outerHTML='<div class=\'cart-item-image-placeholder\'><i class=\'fas fa-utensils\'></i></div>'">
+                        <?php $imgSrc = getImagePath($item['HinhAnh']); ?>
+                        <img src="<?php echo htmlspecialchars($imgSrc); ?>" class="cart-item-image" onerror="this.outerHTML='<div class=\'cart-item-image-placeholder\'><i class=\'fas fa-utensils\'></i></div>'">
                     <?php else: ?>
                         <div class="cart-item-image-placeholder">
                             <i class="fas fa-utensils"></i>

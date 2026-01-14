@@ -77,7 +77,10 @@ try {
     echo json_encode([
         'success' => true, 
         'message' => 'Đã thêm ' . $soLuong . ' ' . $monAn['TenMonAn'] . ' vào giỏ hàng!',
-        'cartCount' => $totalItems
+        'cartCount' => $totalItems,
+        'itemName' => $monAn['TenMonAn'],
+        'itemPrice' => $monAn['DonGia'],
+        'quantity' => $soLuong
     ]);
     
 } catch(PDOException $e) {

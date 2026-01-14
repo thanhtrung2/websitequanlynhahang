@@ -1,863 +1,394 @@
 <?php
 session_start();
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/helpers.php';
 
-// Kiểm tra đăng nhập
-$isLoggedIn = false;
-$userName = '';
-$userType = '';
-
-if (isset($_SESSION['user_id'])) {
-    $isLoggedIn = true;
-    $userType = 'admin';
-    $userName = $_SESSION['user_name'] ?? 'Admin';
-} elseif (isset($_SESSION['customer_id'])) {
-    $isLoggedIn = true;
-    $userType = 'customer';
-    $userName = $_SESSION['customer_name'] ?? 'Khách hàng';
-}
-
-// Xử lý tìm kiếm
-$search = $_GET['search'] ?? '';
-$monAns = [];
-
+// Lấy món nổi bật (6 món ngẫu nhiên)
+$monNoiBat = [];
 try {
-    if (!empty($search)) {
-        // Tìm kiếm theo tên món hoặc mã món
-        $stmt = $conn->prepare("SELECT * FROM mon_an WHERE TenMonAn LIKE ? OR MaMonAn LIKE ? ORDER BY MaMonAn");
-        $searchTerm = "%$search%";
-        $stmt->execute([$searchTerm, $searchTerm]);
-        $monAns = $stmt->fetchAll();
-    } else {
-        // Hiển thị tất cả món ăn
-        $stmt = $conn->query("SELECT * FROM mon_an ORDER BY MaMonAn");
-        $monAns = $stmt->fetchAll();
-    }
-} catch(PDOException $e) {
-    $monAns = [];
-}
+    $stmt = $conn->query("SELECT * FROM mon_an WHERE TrangThai = 'Còn hàng' ORDER BY RAND() LIMIT 6");
+    $monNoiBat = $stmt->fetchAll();
+} catch(PDOException $e) {}
+
+// Lấy danh mục
+$danhMucs = [];
+try {
+    $stmt = $conn->query("SELECT dm.*, COUNT(ma.MaMonAn) as SoMon FROM danh_muc_mon_an dm LEFT JOIN mon_an ma ON dm.MaDanhMuc = ma.MaDanhMuc GROUP BY dm.MaDanhMuc");
+    $danhMucs = $stmt->fetchAll();
+} catch(PDOException $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nhà hàng 3CE - Trang chủ</title>
+    <title>Nhà hàng 3CE - Ẩm thực đỉnh cao</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #F5F5DC 0%, #EDE8D0 50%, #E8E4C9 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
         /* Header */
-        .header {
-            background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
-            padding: 15px 0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            border-bottom: 3px solid #D4AF37;
-        }
+        .header { background: linear-gradient(135deg, #001f3f 0%, #003366 100%); padding: 15px 0; position: fixed; width: 100%; top: 0; z-index: 1000; }
+        .header-content { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 10px; font-size: 24px; font-weight: bold; color: #F5F5DC; text-decoration: none; }
+        .nav-menu { display: flex; gap: 30px; list-style: none; }
+        .nav-menu a { text-decoration: none; color: #F5F5DC; font-weight: 500; transition: color 0.3s; }
+        .nav-menu a:hover { color: #D4AF37; }
         
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        /* Hero Slider */
+        .hero-slider { height: 100vh; position: relative; overflow: hidden; }
+        .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1s ease-in-out; pointer-events: none; }
+        .slide.active { opacity: 1; pointer-events: auto; }
+        .slide-bg { width: 100%; height: 100%; object-fit: cover; }
+        .slide-overlay { position: absolute; inset: 0; background: linear-gradient(rgba(0,31,63,0.6), rgba(0,31,63,0.8)); display: flex; align-items: center; justify-content: center; }
+        .hero-content { max-width: 800px; padding: 20px; text-align: center; color: white; position: relative; z-index: 5; }
+        .hero-content h1 { font-size: 56px; margin-bottom: 20px; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); animation: fadeInUp 1s ease; }
+        .hero-content h1 span { color: #D4AF37; }
+        .hero-content p { font-size: 20px; margin-bottom: 40px; opacity: 0.95; animation: fadeInUp 1s ease 0.3s both; }
+        .hero-btns { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; animation: fadeInUp 1s ease 0.5s both; position: relative; z-index: 10; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #F5F5DC;
-        }
+        /* Slider Controls */
+        .slider-dots { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; z-index: 20; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.3s; }
+        .dot.active { background: #D4AF37; transform: scale(1.3); }
+        .slider-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 50px; height: 50px; background: rgba(255,255,255,0.2); border: none; border-radius: 50%; color: white; font-size: 20px; cursor: pointer; z-index: 20; transition: all 0.3s; }
+        .slider-arrow:hover { background: #D4AF37; color: #001f3f; }
+        .slider-arrow.prev { left: 30px; }
+        .slider-arrow.next { right: 30px; }
         
-        .nav-menu {
-            display: flex;
-            gap: 30px;
-            list-style: none;
-        }
+        .btn { padding: 15px 40px; border-radius: 50px; font-size: 18px; font-weight: 600; text-decoration: none; transition: all 0.3s; display: inline-flex; align-items: center; gap: 10px; cursor: pointer; position: relative; z-index: 10; }
+        .btn-primary { background: linear-gradient(135deg, #D4AF37, #f7d774); color: #001f3f; }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(212,175,55,0.4); }
+        .btn-outline { border: 2px solid white; color: white; background: transparent; }
+        .btn-outline:hover { background: white; color: #001f3f; }
         
-        .nav-menu a {
-            text-decoration: none;
-            color: #F5F5DC;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
+        /* Features */
+        .features { padding: 80px 20px; background: #F5F5DC; }
+        .features-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; }
+        .feature-card { background: white; padding: 40px 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.1); transition: transform 0.3s; }
+        .feature-card:hover { transform: translateY(-10px); }
+        .feature-icon { width: 80px; height: 80px; background: linear-gradient(135deg, #001f3f, #003366); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+        .feature-icon i { font-size: 35px; color: #D4AF37; }
+        .feature-card h3 { color: #001f3f; margin-bottom: 15px; font-size: 22px; }
+        .feature-card p { color: #666; line-height: 1.6; }
         
-        .nav-menu a:hover {
-            color: #D4AF37;
-        }
+        /* Categories */
+        .categories { padding: 80px 20px; background: white; }
+        .section-title { text-align: center; margin-bottom: 50px; }
+        .section-title h2 { font-size: 42px; color: #001f3f; margin-bottom: 15px; }
+        .section-title p { color: #666; font-size: 18px; }
+        .categories-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; }
+        .category-card { position: relative; height: 200px; border-radius: 20px; overflow: hidden; cursor: pointer; }
+        .category-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+        .category-card:hover img { transform: scale(1.1); }
+        .category-overlay { position: absolute; inset: 0; background: linear-gradient(transparent, rgba(0,31,63,0.9)); display: flex; flex-direction: column; justify-content: flex-end; padding: 25px; color: white; }
+        .category-overlay h3 { font-size: 24px; margin-bottom: 5px; }
+        .category-overlay span { opacity: 0.8; }
         
-        /* Main Content */
-        .container {
-            flex: 1;
-            max-width: 1200px;
-            margin: 50px auto;
-            padding: 0 20px;
-        }
+        /* Featured Dishes */
+        .featured { padding: 80px 20px; background: linear-gradient(135deg, #F5F5DC 0%, #EDE8D0 100%); }
+        .dishes-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px; }
+        .dish-card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); transition: all 0.3s; }
+        .dish-card:hover { transform: translateY(-15px); box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+        .dish-image { height: 220px; background: linear-gradient(135deg, #001f3f, #003366); display: flex; align-items: center; justify-content: center; color: #D4AF37; font-size: 60px; position: relative; overflow: hidden; }
+        .dish-image img { width: 100%; height: 100%; object-fit: cover; }
+        .dish-badge { position: absolute; top: 15px; left: 15px; background: linear-gradient(135deg, #D4AF37, #f7d774); color: #001f3f; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .dish-content { padding: 25px; }
+        .dish-content h3 { color: #001f3f; margin-bottom: 10px; font-size: 20px; }
+        .dish-content p { color: #666; font-size: 14px; margin-bottom: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .dish-footer { display: flex; justify-content: space-between; align-items: center; }
+        .dish-price { font-size: 24px; font-weight: bold; color: #003366; }
+        .btn-order { padding: 10px 25px; background: linear-gradient(135deg, #001f3f, #003366); color: #F5F5DC; border: none; border-radius: 25px; cursor: pointer; font-weight: 600; transition: all 0.3s; }
+        .btn-order:hover { background: linear-gradient(135deg, #D4AF37, #f7d774); color: #001f3f; }
         
-        .hero-section {
-            text-align: center;
-            color: #001f3f;
-            margin-bottom: 50px;
-        }
-        
-        .hero-section h1 {
-            font-size: 56px;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-            color: #001f3f;
-        }
-        
-        .hero-section p {
-            font-size: 22px;
-            margin-bottom: 40px;
-            color: #003366;
-        }
-        
-        .cta-buttons {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 50px;
-        }
-        
-        .btn-primary, .btn-secondary {
-            padding: 15px 40px;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
-            color: #F5F5DC;
-            box-shadow: 0 5px 20px rgba(0, 31, 63, 0.3);
-            border: none;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 30px rgba(0, 31, 63, 0.4);
-            background: linear-gradient(135deg, #003366 0%, #004080 100%);
-        }
-        
-        .btn-secondary {
-            background: #F5F5DC;
-            color: #001f3f;
-            border: 2px solid #001f3f;
-        }
-        
-        .btn-secondary:hover {
-            background: #001f3f;
-            color: #F5F5DC;
-        }
-        
-
-        /* Menu Section */
-        .section-title {
-            text-align: center;
-            color: #001f3f;
-            margin: 60px 0 30px;
-        }
-        
-        .section-title h2 {
-            font-size: 42px;
-            margin-bottom: 10px;
-            color: #001f3f;
-        }
-        
-        .section-title p {
-            font-size: 18px;
-            color: #003366;
-        }
-        
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-bottom: 50px;
-        }
-        
-        .menu-card {
-            background: white;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-        }
-        
-        .menu-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        .menu-card-image {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-        }
-        
-        .menu-card-image:not(img) {
-            background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #F5F5DC;
-            font-size: 60px;
-        }
-        
-        .menu-card-content {
-            padding: 20px;
-        }
-        
-        .menu-card-content h3 {
-            color: #001f3f;
-            margin-bottom: 10px;
-            font-size: 22px;
-        }
-        
-        .menu-card-price {
-            font-size: 24px;
-            font-weight: bold;
-            color: #003366;
-            margin: 10px 0;
-        }
-        
-        .menu-card-code {
-            color: #666;
-            font-size: 14px;
-        }
-        
-        /* Search Box */
-        .search-container {
-            max-width: 600px;
-            margin: 30px auto;
-        }
-        
-        .search-box {
-            display: flex;
-            gap: 10px;
-            background: white;
-            padding: 10px;
-            border-radius: 50px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }
-        
-        .search-box input {
-            flex: 1;
-            border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            outline: none;
-        }
-        
-        .search-box button {
-            padding: 12px 30px;
-            background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
-            color: #F5F5DC;
-            border: none;
-            border-radius: 50px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .search-box button:hover {
-            background: linear-gradient(135deg, #003366 0%, #004080 100%);
-        }
-        
-        .search-result {
-            text-align: center;
-            color: #001f3f;
-            margin: 20px 0;
-            font-size: 18px;
-        }
+        /* CTA Section */
+        .cta { padding: 100px 20px; background: linear-gradient(135deg, #001f3f 0%, #003366 100%); text-align: center; color: white; }
+        .cta h2 { font-size: 42px; margin-bottom: 20px; }
+        .cta p { font-size: 20px; margin-bottom: 40px; opacity: 0.9; max-width: 600px; margin-left: auto; margin-right: auto; }
         
         /* Footer */
-        .footer {
-            background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
-            color: #F5F5DC;
-            text-align: center;
-            padding: 20px;
-            margin-top: 50px;
-            border-top: 3px solid #D4AF37;
-        }
+        .footer { background: #001f3f; color: #F5F5DC; padding: 60px 20px 30px; }
+        .footer-content { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; }
+        .footer-section h4 { color: #D4AF37; margin-bottom: 20px; font-size: 20px; }
+        .footer-section p, .footer-section a { color: #ccc; line-height: 2; text-decoration: none; display: block; }
+        .footer-section a:hover { color: #D4AF37; }
+        .footer-bottom { text-align: center; padding-top: 30px; margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .social-links { display: flex; gap: 15px; margin-top: 20px; }
+        .social-links a { width: 40px; height: 40px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #F5F5DC; transition: all 0.3s; }
+        .social-links a:hover { background: #D4AF37; color: #001f3f; }
         
-        /* Menu Card Clickable */
-        .menu-card {
-            cursor: pointer;
-        }
-        
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.6);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal.active {
-            display: flex;
-        }
-        .modal-content {
-            background: white;
-            border-radius: 20px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            animation: modalSlide 0.3s ease;
-        }
-        @keyframes modalSlide {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .modal-header {
-            position: relative;
-        }
-        .modal-image {
-            width: 100%;
-            height: 300px;
-            object-fit: cover;
-            border-radius: 20px 20px 0 0;
-        }
-        .modal-image-placeholder {
-            width: 100%;
-            height: 300px;
-            background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #F5F5DC;
-            font-size: 80px;
-            border-radius: 20px 20px 0 0;
-        }
-        .close-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 40px;
-            height: 40px;
-            background: white;
-            border: none;
-            border-radius: 50%;
-            font-size: 20px;
-            cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #001f3f;
-        }
-        .close-btn:hover {
-            background: #f0f0f0;
-        }
-        .modal-body {
-            padding: 30px;
-        }
-        .modal-title {
-            font-size: 28px;
-            color: #001f3f;
-            margin-bottom: 10px;
-        }
-        .modal-price {
-            font-size: 32px;
-            font-weight: bold;
-            color: #003366;
-            margin-bottom: 15px;
-        }
-        .modal-info {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .modal-info-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #666;
-            font-size: 14px;
-        }
-        .modal-info-item i {
-            color: #001f3f;
-        }
-        .modal-description {
-            color: #555;
-            line-height: 1.8;
-            margin-bottom: 25px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-        .modal-status {
-            display: inline-block;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-        .modal-status.available {
-            background: #d4edda;
-            color: #155724;
-        }
-        .modal-status.unavailable {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        .order-section {
-            border-top: 2px solid #f0f0f0;
-            padding-top: 20px;
-        }
-        .quantity-selector {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .quantity-selector label {
-            font-weight: 600;
-            color: #001f3f;
-        }
-        .quantity-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .qty-btn {
-            width: 40px;
-            height: 40px;
-            border: 2px solid #001f3f;
-            background: white;
-            border-radius: 8px;
-            font-size: 20px;
-            cursor: pointer;
-            color: #001f3f;
-            transition: all 0.3s;
-        }
-        .qty-btn:hover {
-            background: #001f3f;
-            color: white;
-        }
-        .qty-input {
-            width: 60px;
-            height: 40px;
-            text-align: center;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: 600;
-        }
-        .order-total {
-            font-size: 20px;
-            color: #001f3f;
-            margin-bottom: 20px;
-        }
-        .order-total span {
-            font-weight: bold;
-            color: #003366;
-        }
-        .btn-order {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
-            color: #F5F5DC;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        .btn-order:hover {
-            background: linear-gradient(135deg, #003366 0%, #004080 100%);
-            transform: translateY(-2px);
-        }
-        .btn-order:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .login-prompt {
-            text-align: center;
-            padding: 20px;
-            background: #fff3cd;
-            border-radius: 10px;
-            color: #856404;
-        }
-        .login-prompt a {
-            color: #001f3f;
-            font-weight: 600;
-        }
-        .alert-modal {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            display: none;
-        }
-        .alert-modal.success {
-            background: #d4edda;
-            color: #155724;
-            display: block;
-        }
-        .alert-modal.error {
-            background: #f8d7da;
-            color: #721c24;
-            display: block;
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 36px; }
+            .hero p { font-size: 16px; }
+            .nav-menu { display: none; }
+            .section-title h2 { font-size: 28px; }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <div class="header-content">
-            <div class="logo">
-                <i class="fas fa-utensils"></i>
-                <span>Nhà hàng 3CE</span>
-            </div>
-            <ul class="nav-menu">
-                <li><a href="index.php"><i class="fas fa-home"></i> Trang chủ</a></li>
-                <li><a href="#menu"><i class="fas fa-utensils"></i> Thực đơn</a></li>
-                <?php if ($isLoggedIn): ?>
-                    <li><a href="<?php echo $userType === 'admin' ? '../admin/dashboard.php' : 'customer_dashboard.php'; ?>">
-                        <i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($userName); ?>
-                    </a></li>
-                    <li><a href="../auth/logout.php?type=<?php echo $userType; ?>">
-                        <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                    </a></li>
-                <?php else: ?>
-                    <li><a href="../admin/admin_login.php"><i class="fas fa-user-tie"></i> Quản lý</a></li>
-                    <li><a href="customer_login.php"><i class="fas fa-user"></i> Khách hàng</a></li>
-                <?php endif; ?>
-            </ul>
-        </div>
-    </div>
+    <?php include 'includes/header.php'; ?>
 
-    <!-- Main Content -->
-    <div class="container">
-        <div class="hero-section">
-            <h1>Chào mừng đến với nhà hàng của chúng tôi</h1>
-            <p>Trải nghiệm ẩm thực tuyệt vời với hệ thống đặt bàn và đặt món hiện đại</p>
-            
-            <div class="cta-buttons">
-                <?php if ($isLoggedIn): ?>
-                    <a href="<?php echo $userType === 'admin' ? '../admin/dashboard.php' : 'customer_dashboard.php'; ?>" class="btn-primary">
-                        <i class="fas fa-tachometer-alt"></i> Vào Dashboard
-                    </a>
-                    <a href="../auth/logout.php?type=<?php echo $userType; ?>" class="btn-secondary">
-                        <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                    </a>
-                <?php else: ?>
-                    <a href="customer_login.php" class="btn-primary">
-                        <i class="fas fa-utensils"></i> Đặt bàn ngay
-                    </a>
-                    <a href="../admin/admin_login.php" class="btn-secondary">
-                        <i class="fas fa-user-tie"></i> Đăng nhập quản lý
-                    </a>
-                <?php endif; ?>
+    <!-- Hero Slider -->
+    <section class="hero-slider">
+        <div class="slide active">
+            <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920" class="slide-bg" alt="Nhà hàng">
+            <div class="slide-overlay">
+                <div class="hero-content">
+                    <h1>Chào mừng đến <span>Nhà hàng 3CE</span></h1>
+                    <p>Trải nghiệm ẩm thực đỉnh cao với những món ăn được chế biến từ nguyên liệu tươi ngon nhất</p>
+                    <div class="hero-btns">
+                        <a href="thuc_don.php" class="btn btn-primary"><i class="fas fa-book-open"></i> Xem Thực Đơn</a>
+                        <a href="dat_ban.php" class="btn btn-outline"><i class="fas fa-calendar-check"></i> Đặt Bàn Ngay</a>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <!-- Menu Section -->
-        <div class="section-title" id="menu">
-            <h2><i class="fas fa-utensils"></i> Thực đơn đặc biệt</h2>
-            <p>Những món ăn ngon nhất của chúng tôi</p>
+        <div class="slide">
+            <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1920" class="slide-bg" alt="Món ăn">
+            <div class="slide-overlay">
+                <div class="hero-content">
+                    <h1>Món Ăn <span>Đặc Sắc</span></h1>
+                    <p>Thưởng thức hương vị truyền thống Việt Nam qua từng món ăn được chế biến tỉ mỉ</p>
+                    <div class="hero-btns">
+                        <a href="thuc_don.php?category=2" class="btn btn-primary"><i class="fas fa-utensils"></i> Món Chính</a>
+                        <a href="thuc_don.php" class="btn btn-outline"><i class="fas fa-list"></i> Xem Tất Cả</a>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <!-- Search Box -->
-        <div class="search-container">
-            <form method="GET" action="index.php#menu" class="search-box">
-                <input type="text" name="search" placeholder="Tìm kiếm món ăn..." 
-                       value="<?php echo htmlspecialchars($search); ?>">
-                <button type="submit">
-                    <i class="fas fa-search"></i> Tìm kiếm
-                </button>
-            </form>
+        <div class="slide">
+            <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1920" class="slide-bg" alt="Không gian">
+            <div class="slide-overlay">
+                <div class="hero-content">
+                    <h1>Không Gian <span>Sang Trọng</span></h1>
+                    <p>Tận hưởng bữa ăn trong không gian ấm cúng, lý tưởng cho mọi dịp đặc biệt</p>
+                    <div class="hero-btns">
+                        <a href="dat_ban.php" class="btn btn-primary"><i class="fas fa-calendar-check"></i> Đặt Bàn</a>
+                        <?php if ($isLoggedIn): ?>
+                        <a href="<?php echo $userType === 'admin' ? '../admin/dashboard.php' : 'customer_dashboard.php'; ?>" class="btn btn-outline"><i class="fas fa-user"></i> <?php echo htmlspecialchars($userName); ?></a>
+                        <?php else: ?>
+                        <a href="customer_login.php" class="btn btn-outline"><i class="fas fa-user"></i> Đăng Nhập</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
         </div>
+        <div class="slide">
+            <img src="https://images.unsplash.com/photo-1544145945-f90425340c7e?w=1920" class="slide-bg" alt="Đồ uống">
+            <div class="slide-overlay">
+                <div class="hero-content">
+                    <h1>Thức Uống <span>Đa Dạng</span></h1>
+                    <p>Từ cà phê truyền thống đến cocktail hiện đại, đáp ứng mọi sở thích</p>
+                    <div class="hero-btns">
+                        <a href="thuc_don.php?category=4" class="btn btn-primary"><i class="fas fa-glass-cheers"></i> Đồ Uống</a>
+                        <a href="thuc_don.php?category=3" class="btn btn-outline"><i class="fas fa-ice-cream"></i> Tráng Miệng</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="slider-arrow prev" onclick="changeSlide(-1)"><i class="fas fa-chevron-left"></i></button>
+        <button class="slider-arrow next" onclick="changeSlide(1)"><i class="fas fa-chevron-right"></i></button>
+        
+        <div class="slider-dots">
+            <span class="dot active" onclick="goToSlide(0)"></span>
+            <span class="dot" onclick="goToSlide(1)"></span>
+            <span class="dot" onclick="goToSlide(2)"></span>
+            <span class="dot" onclick="goToSlide(3)"></span>
+        </div>
+    </section>
 
-        <?php if (!empty($search)): ?>
-        <div class="search-result">
-            <i class="fas fa-info-circle"></i> 
-            Tìm thấy <?php echo count($monAns); ?> món ăn cho "<?php echo htmlspecialchars($search); ?>"
-            <a href="index.php#menu" style="color: #001f3f; text-decoration: underline; margin-left: 10px;">
-                Xem tất cả
+    <!-- Features -->
+    <section class="features">
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-leaf"></i></div>
+                <h3>Nguyên Liệu Tươi</h3>
+                <p>Chúng tôi chỉ sử dụng nguyên liệu tươi ngon nhất, được chọn lọc kỹ càng mỗi ngày</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-award"></i></div>
+                <h3>Đầu Bếp Chuyên Nghiệp</h3>
+                <p>Đội ngũ đầu bếp giàu kinh nghiệm, được đào tạo bài bản từ các trường ẩm thực hàng đầu</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-clock"></i></div>
+                <h3>Phục Vụ Nhanh Chóng</h3>
+                <p>Cam kết phục vụ nhanh chóng, chu đáo để mang đến trải nghiệm tốt nhất cho khách hàng</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-heart"></i></div>
+                <h3>Không Gian Ấm Cúng</h3>
+                <p>Không gian nhà hàng được thiết kế sang trọng, ấm cúng phù hợp cho mọi dịp</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Categories -->
+    <section class="categories">
+        <div class="section-title">
+            <h2><i class="fas fa-th-large"></i> Danh Mục Món Ăn</h2>
+            <p>Khám phá các danh mục món ăn đa dạng của chúng tôi</p>
+        </div>
+        <div class="categories-grid">
+            <?php 
+            $catImages = [
+                1 => 'https://images.unsplash.com/photo-1541014741259-de529411b96a?w=400',
+                2 => 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400',
+                3 => 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400',
+                4 => 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400'
+            ];
+            foreach ($danhMucs as $dm): 
+            ?>
+            <a href="thuc_don.php?category=<?php echo $dm['MaDanhMuc']; ?>" class="category-card">
+                <img src="<?php echo $catImages[$dm['MaDanhMuc']] ?? $catImages[2]; ?>" alt="<?php echo htmlspecialchars($dm['TenDanhMuc']); ?>">
+                <div class="category-overlay">
+                    <h3><?php echo htmlspecialchars($dm['TenDanhMuc']); ?></h3>
+                    <span><?php echo $dm['SoMon']; ?> món</span>
+                </div>
             </a>
+            <?php endforeach; ?>
         </div>
-        <?php endif; ?>
+    </section>
 
-        <div class="menu-grid">
-            <?php if (count($monAns) > 0): ?>
-                <?php foreach ($monAns as $mon): ?>
-                <div class="menu-card" onclick='openFoodModal(<?php echo json_encode([
-                    "MaMonAn" => $mon["MaMonAn"],
-                    "TenMonAn" => $mon["TenMonAn"],
-                    "DonGia" => $mon["DonGia"],
-                    "HinhAnh" => $mon["HinhAnh"] ?? "",
-                    "MoTa" => $mon["MoTa"] ?? "Món ăn ngon từ Nhà hàng 3CE",
-                    "DonViTinh" => $mon["DonViTinh"] ?? "Phần",
-                    "TrangThai" => $mon["TrangThai"] ?? "Còn hàng"
-                ]); ?>)'>
+    <!-- Featured Dishes -->
+    <section class="featured">
+        <div class="section-title">
+            <h2><i class="fas fa-star"></i> Món Ăn Nổi Bật</h2>
+            <p>Những món ăn được yêu thích nhất tại nhà hàng</p>
+        </div>
+        <div class="dishes-grid">
+            <?php foreach ($monNoiBat as $index => $mon): 
+                $badges = ['Bán chạy', 'Đặc biệt', 'Mới', 'Hot', 'Yêu thích', 'Đề xuất'];
+            ?>
+            <div class="dish-card">
+                <div class="dish-image">
+                    <span class="dish-badge"><i class="fas fa-fire"></i> <?php echo $badges[$index % 6]; ?></span>
                     <?php if (!empty($mon['HinhAnh'])): ?>
-                        <img src="<?php echo htmlspecialchars($mon['HinhAnh']); ?>" 
-                             alt="<?php echo htmlspecialchars($mon['TenMonAn']); ?>" 
-                             class="menu-card-image"
-                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                        <div class="menu-card-image" style="display: none;">
-                            <i class="fas fa-utensils"></i>
-                        </div>
-                    <?php else: ?>
-                        <div class="menu-card-image">
-                            <i class="fas fa-utensils"></i>
-                        </div>
+                    <img src="<?php echo htmlspecialchars(getImagePath($mon['HinhAnh'])); ?>" alt="<?php echo htmlspecialchars($mon['TenMonAn']); ?>" onerror="this.style.display='none'">
                     <?php endif; ?>
-                    <div class="menu-card-content">
-                        <h3><?php echo htmlspecialchars($mon['TenMonAn']); ?></h3>
-                        <div class="menu-card-price">
-                            <?php echo number_format($mon['DonGia'], 0, ',', '.'); ?>đ
-                        </div>
-                        <div class="menu-card-code">
-                            <i class="fas fa-tag"></i> Mã: <?php echo htmlspecialchars($mon['MaMonAn']); ?>
-                            <?php if (($mon['TrangThai'] ?? 'Còn hàng') === 'Hết hàng'): ?>
-                                <span style="color: #dc3545; margin-left: 10px;"><i class="fas fa-times-circle"></i> Hết hàng</span>
-                            <?php endif; ?>
-                        </div>
+                    <i class="fas fa-utensils" style="position:absolute;"></i>
+                </div>
+                <div class="dish-content">
+                    <h3><?php echo htmlspecialchars($mon['TenMonAn']); ?></h3>
+                    <p><?php echo htmlspecialchars($mon['MoTa'] ?? 'Món ăn ngon từ Nhà hàng 3CE'); ?></p>
+                    <div class="dish-footer">
+                        <span class="dish-price"><?php echo number_format($mon['DonGia'], 0, ',', '.'); ?>đ</span>
+                        <a href="thuc_don.php" class="btn-order"><i class="fas fa-eye"></i> Xem thêm</a>
                     </div>
                 </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div style="grid-column: 1/-1; text-align: center; color: #001f3f; padding: 40px;">
-                    <i class="fas fa-info-circle" style="font-size: 48px; margin-bottom: 20px;"></i>
-                    <p style="font-size: 18px;">Chưa có món ăn nào trong thực đơn</p>
-                </div>
-            <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
         </div>
-    </div>
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="thuc_don.php" class="btn btn-primary"><i class="fas fa-book-open"></i> Xem Toàn Bộ Thực Đơn</a>
+        </div>
+    </section>
 
-    <!-- Modal Chi tiết món ăn -->
-    <div id="foodModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div id="modalImageContainer"></div>
-                <button class="close-btn" onclick="closeFoodModal()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div id="modalAlert" class="alert-modal"></div>
-                <h2 id="modalTitle" class="modal-title"></h2>
-                <div id="modalPrice" class="modal-price"></div>
-                <div id="modalStatus" class="modal-status"></div>
-                <div class="modal-info">
-                    <div class="modal-info-item">
-                        <i class="fas fa-tag"></i>
-                        <span>Mã: <strong id="modalCode"></strong></span>
-                    </div>
-                    <div class="modal-info-item">
-                        <i class="fas fa-box"></i>
-                        <span>Đơn vị: <strong id="modalUnit"></strong></span>
-                    </div>
-                </div>
-                <div id="modalDescription" class="modal-description"></div>
-                
-                <div class="order-section">
-                    <?php if ($isLoggedIn && $userType === 'customer'): ?>
-                        <div id="orderForm">
-                            <div class="quantity-selector">
-                                <label>Số lượng:</label>
-                                <div class="quantity-controls">
-                                    <button type="button" class="qty-btn" onclick="changeQty(-1)">-</button>
-                                    <input type="number" id="quantity" class="qty-input" value="1" min="1" max="99" onchange="updateTotal()">
-                                    <button type="button" class="qty-btn" onclick="changeQty(1)">+</button>
-                                </div>
-                            </div>
-                            <div class="order-total">
-                                Tổng tiền: <span id="totalPrice">0đ</span>
-                            </div>
-                            <button type="button" id="btnOrder" class="btn-order" onclick="addToOrder()">
-                                <i class="fas fa-cart-plus"></i> Thêm vào đơn hàng
-                            </button>
-                        </div>
-                    <?php elseif ($isLoggedIn && $userType === 'admin'): ?>
-                        <div class="login-prompt">
-                            <i class="fas fa-info-circle"></i> Bạn đang đăng nhập với tư cách quản lý. 
-                            <br>Vui lòng <a href="../auth/logout.php?type=admin">đăng xuất</a> và đăng nhập với tài khoản khách hàng để đặt món.
-                        </div>
-                    <?php else: ?>
-                        <div class="login-prompt">
-                            <i class="fas fa-lock"></i> Vui lòng <a href="customer_login.php">đăng nhập</a> để đặt món.
-                            <br>Chưa có tài khoản? <a href="customer_register.php">Đăng ký ngay</a>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- CTA -->
+    <section class="cta">
+        <h2><i class="fas fa-calendar-check"></i> Đặt Bàn Ngay Hôm Nay</h2>
+        <p>Liên hệ với chúng tôi để đặt bàn và trải nghiệm những món ăn tuyệt vời nhất</p>
+        <a href="dat_ban.php" class="btn btn-primary"><i class="fas fa-phone"></i> Đặt Bàn Ngay</a>
+    </section>
 
     <!-- Footer -->
-    <div class="footer">
-        <p>&copy; 2024 Nhà hàng 3CE. Tất cả quyền được bảo lưu.</p>
-    </div>
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4><i class="fas fa-utensils"></i> Nhà hàng 3CE</h4>
+                <p>Mang đến trải nghiệm ẩm thực tuyệt vời với những món ăn được chế biến từ nguyên liệu tươi ngon nhất.</p>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-youtube"></i></a>
+                    <a href="#"><i class="fab fa-tiktok"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h4>Liên Kết Nhanh</h4>
+                <a href="index.php">Trang chủ</a>
+                <a href="thuc_don.php">Thực đơn</a>
+                <a href="dat_ban.php">Đặt bàn</a>
+                <a href="customer_login.php">Đăng nhập</a>
+            </div>
+            <div class="footer-section">
+                <h4>Giờ Mở Cửa</h4>
+                <p>Thứ 2 - Thứ 6: 10:00 - 22:00</p>
+                <p>Thứ 7 - Chủ nhật: 09:00 - 23:00</p>
+                <p>Ngày lễ: 09:00 - 23:00</p>
+            </div>
+            <div class="footer-section">
+                <h4>Liên Hệ</h4>
+                <p><i class="fas fa-map-marker-alt"></i> 123 Đường ABC, Quận 1, TP.HCM</p>
+                <p><i class="fas fa-phone"></i> 0123 456 789</p>
+                <p><i class="fas fa-envelope"></i> info@nhahang3ce.com</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Nhà hàng 3CE. All rights reserved.</p>
+        </div>
+    </footer>
 
     <script>
-        let currentFood = null;
-        
-        function openFoodModal(food) {
-            currentFood = food;
-            
-            // Set image
-            const imageContainer = document.getElementById('modalImageContainer');
-            if (food.HinhAnh) {
-                imageContainer.innerHTML = `<img src="${food.HinhAnh}" class="modal-image" onerror="this.outerHTML='<div class=\\'modal-image-placeholder\\'><i class=\\'fas fa-utensils\\'></i></div>'">`;
-            } else {
-                imageContainer.innerHTML = `<div class="modal-image-placeholder"><i class="fas fa-utensils"></i></div>`;
-            }
-            
-            // Set info
-            document.getElementById('modalTitle').textContent = food.TenMonAn;
-            document.getElementById('modalPrice').textContent = formatPrice(food.DonGia) + 'đ';
-            document.getElementById('modalCode').textContent = food.MaMonAn;
-            document.getElementById('modalUnit').textContent = food.DonViTinh;
-            document.getElementById('modalDescription').textContent = food.MoTa;
-            
-            // Set status
-            const statusEl = document.getElementById('modalStatus');
-            if (food.TrangThai === 'Còn hàng') {
-                statusEl.className = 'modal-status available';
-                statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Còn hàng';
-            } else {
-                statusEl.className = 'modal-status unavailable';
-                statusEl.innerHTML = '<i class="fas fa-times-circle"></i> Hết hàng';
-            }
-            
-            // Reset quantity and update total
-            const qtyInput = document.getElementById('quantity');
-            if (qtyInput) {
-                qtyInput.value = 1;
-                updateTotal();
-                
-                // Disable order button if out of stock
-                const btnOrder = document.getElementById('btnOrder');
-                if (btnOrder) {
-                    btnOrder.disabled = food.TrangThai !== 'Còn hàng';
-                }
-            }
-            
-            // Clear alert
-            document.getElementById('modalAlert').className = 'alert-modal';
-            document.getElementById('modalAlert').textContent = '';
-            
-            // Show modal
-            document.getElementById('foodModal').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        function closeFoodModal() {
-            document.getElementById('foodModal').classList.remove('active');
-            document.body.style.overflow = 'auto';
-            currentFood = null;
-        }
-        
-        function changeQty(delta) {
-            const input = document.getElementById('quantity');
-            let value = parseInt(input.value) + delta;
-            if (value < 1) value = 1;
-            if (value > 99) value = 99;
-            input.value = value;
-            updateTotal();
-        }
-        
-        function updateTotal() {
-            if (!currentFood) return;
-            const qty = parseInt(document.getElementById('quantity').value) || 1;
-            const total = qty * parseFloat(currentFood.DonGia);
-            document.getElementById('totalPrice').textContent = formatPrice(total) + 'đ';
-        }
-        
-        function formatPrice(price) {
-            return new Intl.NumberFormat('vi-VN').format(price);
-        }
-        
-        function addToOrder() {
-            if (!currentFood) return;
-            
-            const qty = parseInt(document.getElementById('quantity').value) || 1;
-            const alertEl = document.getElementById('modalAlert');
-            
-            // Send AJAX request
-            fetch('add_to_order.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    MaMonAn: currentFood.MaMonAn,
-                    SoLuong: qty
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alertEl.className = 'alert-modal success';
-                    alertEl.innerHTML = '<i class="fas fa-check-circle"></i> ' + data.message;
-                    setTimeout(() => {
-                        closeFoodModal();
-                    }, 1500);
-                } else {
-                    alertEl.className = 'alert-modal error';
-                    alertEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + data.message;
-                }
-            })
-            .catch(error => {
-                alertEl.className = 'alert-modal error';
-                alertEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> Có lỗi xảy ra, vui lòng thử lại!';
+        // Slider functionality
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const dots = document.querySelectorAll('.dot');
+        const totalSlides = slides.length;
+        let autoSlideInterval;
+
+        function showSlide(index) {
+            if (index >= totalSlides) currentSlide = 0;
+            else if (index < 0) currentSlide = totalSlides - 1;
+            else currentSlide = index;
+
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active');
+                dots[i].classList.remove('active');
             });
+            slides[currentSlide].classList.add('active');
+            dots[currentSlide].classList.add('active');
         }
-        
-        // Close modal when clicking outside
-        document.getElementById('foodModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeFoodModal();
-            }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+            resetAutoSlide();
+        }
+
+        function goToSlide(index) {
+            showSlide(index);
+            resetAutoSlide();
+        }
+
+        function autoSlide() {
+            autoSlideInterval = setInterval(() => {
+                showSlide(currentSlide + 1);
+            }, 5000); // Chuyển slide mỗi 5 giây
+        }
+
+        function resetAutoSlide() {
+            clearInterval(autoSlideInterval);
+            autoSlide();
+        }
+
+        // Bắt đầu auto slide
+        autoSlide();
+
+        // Pause khi hover
+        document.querySelector('.hero-slider').addEventListener('mouseenter', () => {
+            clearInterval(autoSlideInterval);
         });
-        
-        // Close modal with Escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeFoodModal();
-            }
+        document.querySelector('.hero-slider').addEventListener('mouseleave', () => {
+            autoSlide();
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+            if (e.key === 'ArrowRight') changeSlide(1);
         });
     </script>
 </body>
