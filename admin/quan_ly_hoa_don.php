@@ -66,6 +66,7 @@ try {
     <meta charset="UTF-8">
     <title>Nhà hàng 3CE - Quản lý hóa đơn</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="includes/admin_layout.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -275,58 +276,52 @@ try {
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <div class="logo">
-                <i class="fas fa-file-invoice"></i>
-                <span>Quản lý hóa đơn</span>
+    <div class="admin-layout">
+        <?php include 'includes/sidebar.php'; ?>
+        
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1><i class="fas fa-file-invoice"></i> Quản lý hóa đơn</h1>
+                <span style="color: #666; font-size: 14px;">
+                    <i class="fas fa-calendar"></i> <?php echo date('d/m/Y'); ?>
+                </span>
             </div>
-            <a href="dashboard.php" class="back-btn">
-                <i class="fas fa-arrow-left"></i> Quay lại
-            </a>
-        </div>
-    </div>
 
-    <div class="container">
-        <div class="page-header">
-            <h1><i class="fas fa-file-invoice"></i> Danh sách hóa đơn</h1>
-            <p>Quản lý các hóa đơn trong hệ thống</p>
-        </div>
+            <?php if ($message): ?>
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($message); ?>
+            </div>
+            <?php endif; ?>
 
-        <?php if ($message): ?>
-        <div class="alert alert-success">
-            <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($message); ?>
-        </div>
-        <?php endif; ?>
+            <?php if ($error): ?>
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
+            </div>
+            <?php endif; ?>
 
-        <?php if ($error): ?>
-        <div class="alert alert-error">
-            <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
-        </div>
-        <?php endif; ?>
+            <div class="filter-tabs">
+                <a href="?filter=all" class="filter-tab <?php echo $filter === 'all' ? 'active' : ''; ?>">
+                    <i class="fas fa-list"></i> Tất cả
+                </a>
+                <a href="?filter=pending" class="filter-tab <?php echo $filter === 'pending' ? 'active' : ''; ?>">
+                    <i class="fas fa-clock"></i> Chờ thanh toán
+                    <?php if (($counts['Chưa thanh toán'] ?? 0) > 0): ?>
+                    <span class="badge"><?php echo $counts['Chưa thanh toán']; ?></span>
+                    <?php endif; ?>
+                </a>
+                <a href="?filter=paid" class="filter-tab <?php echo $filter === 'paid' ? 'active' : ''; ?>">
+                    <i class="fas fa-check"></i> Đã thanh toán
+                </a>
+                <a href="?filter=cancelled" class="filter-tab <?php echo $filter === 'cancelled' ? 'active' : ''; ?>">
+                    <i class="fas fa-times"></i> Đã hủy
+                </a>
+            </div>
 
-        <div class="filter-tabs">
-            <a href="?filter=all" class="filter-tab <?php echo $filter === 'all' ? 'active' : ''; ?>">
-                <i class="fas fa-list"></i> Tất cả
-            </a>
-            <a href="?filter=pending" class="filter-tab <?php echo $filter === 'pending' ? 'active' : ''; ?>">
-                <i class="fas fa-clock"></i> Chờ thanh toán
-                <?php if (($counts['Chưa thanh toán'] ?? 0) > 0): ?>
-                <span class="badge"><?php echo $counts['Chưa thanh toán']; ?></span>
-                <?php endif; ?>
-            </a>
-            <a href="?filter=paid" class="filter-tab <?php echo $filter === 'paid' ? 'active' : ''; ?>">
-                <i class="fas fa-check"></i> Đã thanh toán
-            </a>
-            <a href="?filter=cancelled" class="filter-tab <?php echo $filter === 'cancelled' ? 'active' : ''; ?>">
-                <i class="fas fa-times"></i> Đã hủy
-            </a>
-        </div>
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
                         <th>Mã HĐ</th>
                         <th>Khách hàng</th>
                         <th>Nhân viên xử lý</th>
@@ -349,7 +344,7 @@ try {
                     <tr>
                         <td><strong>#<?php echo htmlspecialchars($hd['MaHoaDon']); ?></strong></td>
                         <td><?php echo htmlspecialchars($hd['TenKH'] ?? 'Khách vãng lai'); ?></td>
-                        <td><?php echo htmlspecialchars($hd['TenNV'] ?? '<em>Chưa xử lý</em>'); ?></td>
+                        <td><?php echo $hd['TenNV'] ? htmlspecialchars($hd['TenNV']) : '<em>Chưa xử lý</em>'; ?></td>
                         <td><?php echo date('d/m/Y H:i', strtotime($hd['ThoiGianVao'])); ?></td>
                         <td style="font-weight: bold; color: #003366;">
                             <?php echo number_format($hd['TongTien'] ?? 0, 0, ',', '.'); ?>đ
@@ -382,8 +377,9 @@ try {
                     <?php endforeach; ?>
                     <?php endif; ?>
                 </tbody>
-            </table>
-        </div>
+                </table>
+            </div>
+        </main>
     </div>
 
     <!-- Modal Chi tiết hóa đơn -->

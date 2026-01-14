@@ -193,9 +193,13 @@ try {
                     <?php foreach ($chucVuList as $cv): ?>
                     <option value="<?php echo $cv['MaChucVu']; ?>">
                         <?php echo htmlspecialchars($cv['TenChucVu']); ?>
+                        <?php if ($cv['MaChucVu'] == 1): ?> (Có quyền Admin)<?php endif; ?>
                     </option>
                     <?php endforeach; ?>
                 </select>
+                <small style="color: #666; display: block; margin-top: 5px;">
+                    <i class="fas fa-info-circle"></i> Chỉ chức vụ "Quản lý" mới có quyền đăng nhập trang Admin
+                </small>
             </div>
             
             <div class="form-group">

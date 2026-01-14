@@ -22,61 +22,9 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nhà hàng 3CE - Quản lý nhân viên</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="includes/admin_layout.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #F5F5DC 0%, #EDE8D0 100%);
-            min-height: 100vh;
-        }
-        .header {
-            background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
-            padding: 15px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #F5F5DC;
-        }
-        .back-btn {
-            padding: 8px 20px;
-            background: #F5F5DC;
-            color: #001f3f;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: all 0.3s;
-        }
-        .back-btn:hover {
-            background: #E8E4C9;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
-        .page-header {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
-        }
-        .page-header h1 {
-            color: #001f3f;
-            margin-bottom: 10px;
-        }
         .table-container {
             background: white;
             border-radius: 15px;
@@ -116,38 +64,32 @@ try {
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <div class="logo">
-                <i class="fas fa-users"></i>
-                <span>Quản lý nhân viên</span>
+    <div class="admin-layout">
+        <?php include 'includes/sidebar.php'; ?>
+        
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1><i class="fas fa-users"></i> Quản lý nhân viên</h1>
+                <span style="color: #666; font-size: 14px;">
+                    <i class="fas fa-calendar"></i> <?php echo date('d/m/Y'); ?>
+                </span>
             </div>
-            <a href="dashboard.php" class="back-btn">
-                <i class="fas fa-arrow-left"></i> Quay lại
-            </a>
-        </div>
-    </div>
 
-    <div class="container">
-        <div class="page-header">
-            <h1><i class="fas fa-users"></i> Danh sách nhân viên</h1>
-            <p>Quản lý thông tin nhân viên trong hệ thống</p>
-        </div>
-
-        <div class="table-container">
-            <a href="register.php" class="btn-add">
-                <i class="fas fa-plus"></i> Thêm nhân viên mới
-            </a>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th>Mã NV</th>
-                        <th>Tên nhân viên</th>
-                        <th>Số điện thoại</th>
-                        <th>Chức vụ</th>
-                        <th>Lương</th>
-                        <th>Ngày vào làm</th>
+            <div class="table-container">
+                <a href="register.php" class="btn-add">
+                    <i class="fas fa-plus"></i> Thêm nhân viên mới
+                </a>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã NV</th>
+                            <th>Tên nhân viên</th>
+                            <th>Số điện thoại</th>
+                            <th>Chức vụ</th>
+                            <th>Lương</th>
+                            <th>Ngày vào làm</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -163,7 +105,8 @@ try {
                     <?php endforeach; ?>
                 </tbody>
             </table>
-        </div>
+            </div>
+        </main>
     </div>
 </body>
 </html>

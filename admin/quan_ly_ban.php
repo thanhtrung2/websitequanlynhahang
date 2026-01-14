@@ -40,6 +40,7 @@ try {
     <meta charset="UTF-8">
     <title>Nhà hàng 3CE - Quản lý bàn ăn</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="includes/admin_layout.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -178,60 +179,55 @@ try {
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <div class="logo">
-                <i class="fas fa-chair"></i>
-                <span>Quản lý bàn ăn</span>
+    <div class="admin-layout">
+        <?php include 'includes/sidebar.php'; ?>
+        
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1><i class="fas fa-chair"></i> Sơ đồ bàn ăn</h1>
+                <span style="color: #666; font-size: 14px;">
+                    <i class="fas fa-calendar"></i> <?php echo date('d/m/Y'); ?>
+                </span>
             </div>
-            <a href="dashboard.php" class="back-btn">
-                <i class="fas fa-arrow-left"></i> Quay lại
-            </a>
-        </div>
-    </div>
 
-    <div class="container">
-        <div class="page-header">
-            <h1><i class="fas fa-chair"></i> Sơ đồ bàn ăn</h1>
-            <p>Quản lý trạng thái các bàn trong nhà hàng</p>
-        </div>
+            <?php if ($message): ?>
+            <div class="alert alert-success"><i class="fas fa-check-circle"></i> <?php echo $message; ?></div>
+            <?php endif; ?>
+            <?php if ($error): ?>
+            <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <?php echo $error; ?></div>
+            <?php endif; ?>
 
-        <?php if ($message): ?>
-        <div class="alert alert-success"><i class="fas fa-check-circle"></i> <?php echo $message; ?></div>
-        <?php endif; ?>
-        <?php if ($error): ?>
-        <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <?php echo $error; ?></div>
-        <?php endif; ?>
-
-        <div class="table-grid">
-            <?php foreach ($bans as $ban): 
-                $statusClass = 'available';
-                if ($ban['TrangThai'] == 'Đang phục vụ') $statusClass = 'occupied';
-                elseif ($ban['TrangThai'] == 'Đã đặt') $statusClass = 'reserved';
-            ?>
-            <div class="table-card <?php echo $statusClass; ?>">
-                <i class="fas fa-chair"></i>
-                <h3><?php echo htmlspecialchars($ban['TenBan'] ?? 'Bàn ' . $ban['MaBan']); ?></h3>
-                <p>Sức chứa: <?php echo htmlspecialchars($ban['SoGhe']); ?> người</p>
-                <?php if ($ban['ViTri']): ?>
-                <p style="font-size: 12px; color: #666;"><?php echo htmlspecialchars($ban['ViTri']); ?></p>
-                <?php endif; ?>
-                <p class="status <?php echo $statusClass; ?>">
-                    <?php echo htmlspecialchars($ban['TrangThai']); ?>
-                </p>
-                
-                <form method="POST">
-                    <input type="hidden" name="action" value="change_status">
-                    <input type="hidden" name="MaBan" value="<?php echo $ban['MaBan']; ?>">
-                    <select name="TrangThai" class="status-select" onchange="this.form.submit()">
-                        <option value="Trống" <?php echo $ban['TrangThai'] == 'Trống' ? 'selected' : ''; ?>>Trống</option>
-                        <option value="Đang phục vụ" <?php echo $ban['TrangThai'] == 'Đang phục vụ' ? 'selected' : ''; ?>>Đang phục vụ</option>
-                        <option value="Đã đặt" <?php echo $ban['TrangThai'] == 'Đã đặt' ? 'selected' : ''; ?>>Đã đặt</option>
-                    </select>
-                </form>
+            <div class="table-grid">
+                <?php foreach ($bans as $ban): 
+                    $statusClass = 'available';
+                    if ($ban['TrangThai'] == 'Đang phục vụ') $statusClass = 'occupied';
+                    elseif ($ban['TrangThai'] == 'Đã đặt') $statusClass = 'reserved';
+                ?>
+                <div class="table-card <?php echo $statusClass; ?>">
+                    <i class="fas fa-chair"></i>
+                    <h3><?php echo htmlspecialchars($ban['TenBan'] ?? 'Bàn ' . $ban['MaBan']); ?></h3>
+                    <p>Sức chứa: <?php echo htmlspecialchars($ban['SoGhe']); ?> người</p>
+                    <?php if ($ban['ViTri']): ?>
+                    <p style="font-size: 12px; color: #666;"><?php echo htmlspecialchars($ban['ViTri']); ?></p>
+                    <?php endif; ?>
+                    <p class="status <?php echo $statusClass; ?>">
+                        <?php echo htmlspecialchars($ban['TrangThai']); ?>
+                    </p>
+                    
+                    <form method="POST">
+                        <input type="hidden" name="action" value="change_status">
+                        <input type="hidden" name="MaBan" value="<?php echo $ban['MaBan']; ?>">
+                        <select name="TrangThai" class="status-select" onchange="this.form.submit()">
+                            <option value="Trống" <?php echo $ban['TrangThai'] == 'Trống' ? 'selected' : ''; ?>>Trống</option>
+                            <option value="Đang phục vụ" <?php echo $ban['TrangThai'] == 'Đang phục vụ' ? 'selected' : ''; ?>>Đang phục vụ</option>
+                            <option value="Đã đặt" <?php echo $ban['TrangThai'] == 'Đã đặt' ? 'selected' : ''; ?>>Đã đặt</option>
+                        </select>
+                    </form>
+                </div>
+                <?php endforeach; ?>
             </div>
-            <?php endforeach; ?>
-        </div>
+        </main>
     </div>
 </body>
 </html>

@@ -54,59 +54,9 @@ try {
     <meta charset="UTF-8">
     <title>Nhà hàng 3CE - Báo cáo doanh thu</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="includes/admin_layout.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #F5F5DC 0%, #EDE8D0 100%);
-            min-height: 100vh;
-        }
-        .header {
-            background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
-            padding: 15px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #F5F5DC;
-        }
-        .back-btn {
-            padding: 8px 20px;
-            background: #F5F5DC;
-            color: #001f3f;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-        .back-btn:hover {
-            background: #E8E4C9;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
-        .page-header {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
-        }
-        .page-header h1 {
-            color: #001f3f;
-        }
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -135,93 +85,88 @@ try {
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <div class="logo">
-                <i class="fas fa-chart-bar"></i>
-                <span>Báo cáo doanh thu</span>
-            </div>
-            <a href="dashboard.php" class="back-btn">
-                <i class="fas fa-arrow-left"></i> Quay lại
-            </a>
-        </div>
-    </div>
-
-    <div class="container">
-        <div class="page-header">
-            <h1><i class="fas fa-chart-bar"></i> Thống kê doanh thu</h1>
-            <p>Báo cáo chi tiết về doanh thu nhà hàng</p>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <i class="fas fa-calendar-day"></i>
-                <h3><?php echo number_format($doanhThuHomNay, 0, ',', '.'); ?>đ</h3>
-                <p>Doanh thu hôm nay</p>
-                <p style="margin-top: 10px; color: #001f3f;">
-                    <i class="fas fa-check-circle"></i> <?php echo $soDonThanhToan; ?> đơn đã thanh toán
-                </p>
+    <div class="admin-layout">
+        <?php include 'includes/sidebar.php'; ?>
+        
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1><i class="fas fa-chart-bar"></i> Báo cáo doanh thu</h1>
+                <span style="color: #666; font-size: 14px;">
+                    <i class="fas fa-calendar"></i> <?php echo date('d/m/Y'); ?>
+                </span>
             </div>
 
-            <div class="stat-card" style="border-left: 4px solid #ffc107;">
-                <i class="fas fa-clock" style="color: #ffc107;"></i>
-                <h3><?php echo number_format($doanhThuCho, 0, ',', '.'); ?>đ</h3>
-                <p>Doanh thu chờ xử lý</p>
-                <p style="margin-top: 10px; color: #856404;">
-                    <i class="fas fa-hourglass-half"></i> <?php echo $donChoXuLy; ?> đơn chờ thanh toán
-                </p>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-calendar-day"></i>
+                    <h3><?php echo number_format($doanhThuHomNay, 0, ',', '.'); ?>đ</h3>
+                    <p>Doanh thu hôm nay</p>
+                    <p style="margin-top: 10px; color: #001f3f;">
+                        <i class="fas fa-check-circle"></i> <?php echo $soDonThanhToan; ?> đơn đã thanh toán
+                    </p>
+                </div>
+
+                <div class="stat-card" style="border-left: 4px solid #ffc107;">
+                    <i class="fas fa-clock" style="color: #ffc107;"></i>
+                    <h3><?php echo number_format($doanhThuCho, 0, ',', '.'); ?>đ</h3>
+                    <p>Doanh thu chờ xử lý</p>
+                    <p style="margin-top: 10px; color: #856404;">
+                        <i class="fas fa-hourglass-half"></i> <?php echo $donChoXuLy; ?> đơn chờ thanh toán
+                    </p>
+                </div>
+
+                <div class="stat-card">
+                    <i class="fas fa-calendar-alt"></i>
+                    <h3><?php echo number_format($doanhThuThang, 0, ',', '.'); ?>đ</h3>
+                    <p>Doanh thu tháng này</p>
+                </div>
+
+                <div class="stat-card">
+                    <i class="fas fa-calendar"></i>
+                    <h3><?php echo number_format($doanhThuNam, 0, ',', '.'); ?>đ</h3>
+                    <p>Doanh thu năm nay</p>
+                </div>
             </div>
 
-            <div class="stat-card">
-                <i class="fas fa-calendar-alt"></i>
-                <h3><?php echo number_format($doanhThuThang, 0, ',', '.'); ?>đ</h3>
-                <p>Doanh thu tháng này</p>
+            <?php if (!empty($doanhThu7Ngay)): ?>
+            <div class="stat-card" style="margin-top: 30px;">
+                <h3 style="font-size: 20px; margin-bottom: 20px; color: #001f3f;">
+                    <i class="fas fa-chart-line"></i> Doanh thu 7 ngày gần nhất
+                </h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: linear-gradient(135deg, #001f3f 0%, #003366 100%); color: #F5F5DC;">
+                            <th style="padding: 12px; text-align: left;">Ngày</th>
+                            <th style="padding: 12px; text-align: center;">Số đơn</th>
+                            <th style="padding: 12px; text-align: right;">Doanh thu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($doanhThu7Ngay as $row): ?>
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 12px;">
+                                <?php 
+                                $date = new DateTime($row['ngay']);
+                                echo $date->format('d/m/Y');
+                                if ($row['ngay'] === date('Y-m-d')) echo ' <span style="color: #28a745; font-size: 12px;">(Hôm nay)</span>';
+                                ?>
+                            </td>
+                            <td style="padding: 12px; text-align: center;">
+                                <span style="background: #e9ecef; padding: 3px 10px; border-radius: 10px;">
+                                    <?php echo $row['soDon']; ?> đơn
+                                </span>
+                            </td>
+                            <td style="padding: 12px; text-align: right; font-weight: bold; color: #003366;">
+                                <?php echo number_format($row['total'], 0, ',', '.'); ?>đ
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
-
-            <div class="stat-card">
-                <i class="fas fa-calendar"></i>
-                <h3><?php echo number_format($doanhThuNam, 0, ',', '.'); ?>đ</h3>
-                <p>Doanh thu năm nay</p>
-            </div>
-        </div>
-
-        <?php if (!empty($doanhThu7Ngay)): ?>
-        <div class="stat-card" style="margin-top: 30px;">
-            <h3 style="font-size: 20px; margin-bottom: 20px; color: #001f3f;">
-                <i class="fas fa-chart-line"></i> Doanh thu 7 ngày gần nhất
-            </h3>
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: linear-gradient(135deg, #001f3f 0%, #003366 100%); color: #F5F5DC;">
-                        <th style="padding: 12px; text-align: left;">Ngày</th>
-                        <th style="padding: 12px; text-align: center;">Số đơn</th>
-                        <th style="padding: 12px; text-align: right;">Doanh thu</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($doanhThu7Ngay as $row): ?>
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 12px;">
-                            <?php 
-                            $date = new DateTime($row['ngay']);
-                            echo $date->format('d/m/Y');
-                            if ($row['ngay'] === date('Y-m-d')) echo ' <span style="color: #28a745; font-size: 12px;">(Hôm nay)</span>';
-                            ?>
-                        </td>
-                        <td style="padding: 12px; text-align: center;">
-                            <span style="background: #e9ecef; padding: 3px 10px; border-radius: 10px;">
-                                <?php echo $row['soDon']; ?> đơn
-                            </span>
-                        </td>
-                        <td style="padding: 12px; text-align: right; font-weight: bold; color: #003366;">
-                            <?php echo number_format($row['total'], 0, ',', '.'); ?>đ
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-        <?php endif; ?>
+            <?php endif; ?>
+        </main>
     </div>
 </body>
 </html>

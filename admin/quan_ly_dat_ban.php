@@ -99,6 +99,7 @@ try {
     <meta charset="UTF-8">
     <title>Nhà hàng 3CE - Quản lý đặt bàn</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="includes/admin_layout.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -306,67 +307,61 @@ try {
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <div class="logo">
-                <i class="fas fa-calendar-check"></i>
-                <span>Quản lý đặt bàn</span>
+    <div class="admin-layout">
+        <?php include 'includes/sidebar.php'; ?>
+        
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1><i class="fas fa-calendar-check"></i> Quản lý đặt bàn</h1>
+                <span style="color: #666; font-size: 14px;">
+                    <i class="fas fa-calendar"></i> <?php echo date('d/m/Y'); ?>
+                </span>
             </div>
-            <a href="dashboard.php" class="back-btn">
-                <i class="fas fa-arrow-left"></i> Quay lại
-            </a>
-        </div>
-    </div>
 
-    <div class="container">
-        <div class="page-header">
-            <h1><i class="fas fa-calendar-check"></i> Quản lý đặt bàn</h1>
-            <p>Xem và xử lý các yêu cầu đặt bàn từ khách hàng</p>
-        </div>
+            <?php if ($message): ?>
+            <div class="alert alert-success"><i class="fas fa-check-circle"></i> <?php echo $message; ?></div>
+            <?php endif; ?>
+            <?php if ($error): ?>
+            <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <?php echo $error; ?></div>
+            <?php endif; ?>
 
-        <?php if ($message): ?>
-        <div class="alert alert-success"><i class="fas fa-check-circle"></i> <?php echo $message; ?></div>
-        <?php endif; ?>
-        <?php if ($error): ?>
-        <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <?php echo $error; ?></div>
-        <?php endif; ?>
-
-        <div class="filter-tabs">
-            <a href="?filter=all" class="filter-tab <?php echo $filter === 'all' ? 'active' : ''; ?>">
-                <i class="fas fa-list"></i> Tất cả
-            </a>
-            <a href="?filter=pending" class="filter-tab <?php echo $filter === 'pending' ? 'active' : ''; ?>">
-                <i class="fas fa-clock"></i> Chờ xác nhận
-                <?php if (($counts['Chờ xác nhận'] ?? 0) > 0): ?>
-                <span class="badge"><?php echo $counts['Chờ xác nhận']; ?></span>
-                <?php endif; ?>
-            </a>
-            <a href="?filter=confirmed" class="filter-tab <?php echo $filter === 'confirmed' ? 'active' : ''; ?>">
-                <i class="fas fa-check"></i> Đã xác nhận
-            </a>
-            <a href="?filter=done" class="filter-tab <?php echo $filter === 'done' ? 'active' : ''; ?>">
-                <i class="fas fa-user-check"></i> Đã đến
-            </a>
-            <a href="?filter=cancelled" class="filter-tab <?php echo $filter === 'cancelled' ? 'active' : ''; ?>">
-                <i class="fas fa-times"></i> Đã hủy
-            </a>
-        </div>
-
-        <div class="card">
-            <?php if (empty($datBans)): ?>
-            <div class="empty-state">
-                <i class="fas fa-calendar-times"></i>
-                <h3>Không có đặt bàn nào</h3>
+            <div class="filter-tabs">
+                <a href="?filter=all" class="filter-tab <?php echo $filter === 'all' ? 'active' : ''; ?>">
+                    <i class="fas fa-list"></i> Tất cả
+                </a>
+                <a href="?filter=pending" class="filter-tab <?php echo $filter === 'pending' ? 'active' : ''; ?>">
+                    <i class="fas fa-clock"></i> Chờ xác nhận
+                    <?php if (($counts['Chờ xác nhận'] ?? 0) > 0): ?>
+                    <span class="badge"><?php echo $counts['Chờ xác nhận']; ?></span>
+                    <?php endif; ?>
+                </a>
+                <a href="?filter=confirmed" class="filter-tab <?php echo $filter === 'confirmed' ? 'active' : ''; ?>">
+                    <i class="fas fa-check"></i> Đã xác nhận
+                </a>
+                <a href="?filter=done" class="filter-tab <?php echo $filter === 'done' ? 'active' : ''; ?>">
+                    <i class="fas fa-user-check"></i> Đã đến
+                </a>
+                <a href="?filter=cancelled" class="filter-tab <?php echo $filter === 'cancelled' ? 'active' : ''; ?>">
+                    <i class="fas fa-times"></i> Đã hủy
+                </a>
             </div>
-            <?php else: ?>
-                <?php foreach ($datBans as $dat): ?>
-                <div class="booking-item">
-                    <div class="booking-info">
-                        <h4><i class="fas fa-user"></i> <?php echo htmlspecialchars($dat['HoTen']); ?></h4>
-                        <p><i class="fas fa-phone"></i> <?php echo htmlspecialchars($dat['SoDienThoai']); ?></p>
-                        <p><i class="fas fa-calendar"></i> <?php echo date('d/m/Y H:i', strtotime($dat['ThoiGianDat'])); ?></p>
-                        <p><i class="fas fa-users"></i> <?php echo $dat['SoLuongKhach']; ?> người</p>
-                        <?php if ($dat['TenBan']): ?>
+
+            <div class="card">
+                <?php if (empty($datBans)): ?>
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <h3>Không có đặt bàn nào</h3>
+                </div>
+                <?php else: ?>
+                    <?php foreach ($datBans as $dat): ?>
+                    <div class="booking-item">
+                        <div class="booking-info">
+                            <h4><i class="fas fa-user"></i> <?php echo htmlspecialchars($dat['HoTen']); ?></h4>
+                            <p><i class="fas fa-phone"></i> <?php echo htmlspecialchars($dat['SoDienThoai']); ?></p>
+                            <p><i class="fas fa-calendar"></i> <?php echo date('d/m/Y H:i', strtotime($dat['ThoiGianDat'])); ?></p>
+                            <p><i class="fas fa-users"></i> <?php echo $dat['SoLuongKhach']; ?> người</p>
+                            <?php if ($dat['TenBan']): ?>
                         <p><i class="fas fa-chair"></i> <?php echo htmlspecialchars($dat['TenBan']); ?> - <?php echo htmlspecialchars($dat['ViTri'] ?? ''); ?></p>
                         <?php endif; ?>
                         <?php if ($dat['GhiChu']): ?>
@@ -402,10 +397,11 @@ try {
                             <?php endif; ?>
                         </div>
                     </div>
-                </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
+                    </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </main>
     </div>
 
     <!-- Modal xác nhận đặt bàn -->

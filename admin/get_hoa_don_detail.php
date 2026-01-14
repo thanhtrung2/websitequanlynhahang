@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/helpers.php';
 
 if (!isset($_SESSION['user_id'])) {
     echo '<p style="color: red;">Không có quyền truy cập</p>';
@@ -92,7 +93,8 @@ try {
 <?php foreach ($chiTiet as $item): ?>
 <div style="display: flex; align-items: center; gap: 15px; padding: 10px 0; border-bottom: 1px solid #eee;">
     <?php if (!empty($item['HinhAnh'])): ?>
-        <img src="<?php echo htmlspecialchars($item['HinhAnh']); ?>" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;">
+        <?php $imgSrc = getImagePath($item['HinhAnh'], 'admin'); ?>
+        <img src="<?php echo htmlspecialchars($imgSrc); ?>" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;">
     <?php else: ?>
         <div style="width: 50px; height: 50px; border-radius: 8px; background: linear-gradient(135deg, #001f3f 0%, #003366 100%); display: flex; align-items: center; justify-content: center; color: #F5F5DC;">
             <i class="fas fa-utensils"></i>
